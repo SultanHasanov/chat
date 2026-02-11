@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мессенджер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Модальное окно для ввода имени */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .modal input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .modal button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .modal button:hover {
+            background-color: #0056b3;
+        }
+
+        .modal button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Основной контейнер мессенджера */
+        .messenger-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Заголовок */
+        .header {
+            padding: 20px;
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Область сообщений */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .message-author {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .message-text {
+            color: #444;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        /* Форма ввода сообщения */
+        .input-container {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container textarea {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            height: 44px;
+        }
+
+        .input-container textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .input-container button {
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .input-container button:hover {
+            background-color: #0056b3;
+        }
+
+        .input-container button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Скрытие элементов */
+        .hidden {
+            display: none;
+        }
+
+        /* Индикатор загрузки */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #d9534f;
+        }
+    </style>
+</head>
+<body>
+    <!-- Модальное окно для ввода имени -->
+    <div id="nameModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h2>Добро пожаловать</h2>
+            <input type="text" id="nameInput" placeholder="Введите ваше имя" maxlength="50">
+            <button id="submitName">Продолжить</button>
+        </div>
+    </div>
+
+    <!-- Основной контейнер мессенджера -->
+    <div id="messengerContainer" class="messenger-container hidden">
+        <div class="header">
+            <h1>Мессенджер</h1>
+            <div class="user-info">
+                <span id="currentUser"></span>
+            </div>
+        </div>
+
+        <div class="messages-container" id="messagesContainer">
+            <div class="loading">Загрузка сообщений...</div>
+        </div>
+
+        <div class="input-container">
+            <textarea id="messageInput" placeholder="Введите сообщение..."></textarea>
+            <button id="sendButton">Отправить</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://cb03b3d74959c2f3.mokky.dev/items';
+        let currentUsername = '';
+
+        // Элементы DOM
+        const nameModal = document.getElementById('nameModal');
+        const nameInput = document.getElementById('nameInput');
+        const submitNameBtn = document.getElementById('submitName');
+        const messengerContainer = document.getElementById('messengerContainer');
+        const currentUserSpan = document.getElementById('currentUser');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // Проверка наличия имени пользователя
+        function checkUsername() {
+            const storedUsername = sessionStorage.getItem('username');
+            
+            if (storedUsername) {
+                currentUsername = storedUsername;
+                showMessenger();
+            } else {
+                showNameModal();
+            }
+        }
+
+        // Показать модальное окно для ввода имени
+        function showNameModal() {
+            nameModal.classList.remove('hidden');
+            nameInput.focus();
+        }
+
+        // Показать мессенджер
+        function showMessenger() {
+            nameModal.classList.add('hidden');
+            messengerContainer.classList.remove('hidden');
+            currentUserSpan.textContent = currentUsername;
+            loadMessages();
+        }
+
+        // Сохранить имя пользователя
+        submitNameBtn.addEventListener('click', () => {
+            const username = nameInput.value.trim();
+            
+            if (username) {
+                currentUsername = username;
+                sessionStorage.setItem('username', username);
+                showMessenger();
+            }
+        });
+
+        // Отправка по Enter
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitNameBtn.click();
+            }
+        });
+
+        // Загрузка сообщений
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${API_URL}?sortBy=-date`);
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки сообщений');
+                }
+                
+                const messages = await response.json();
+                displayMessages(messages);
+                
+                // Автообновление каждые 3 секунды
+                setTimeout(loadMessages, 3000);
+            } catch (error) {
+                messagesContainer.innerHTML = `<div class="error-message">Ошибка загрузки: ${error.message}</div>`;
+                setTimeout(loadMessages, 5000);
+            }
+        }
+
+        // Отображение сообщений
+        function displayMessages(messages) {
+            if (messages.length === 0) {
+                messagesContainer.innerHTML = '<div class="loading">Сообщений пока нет</div>';
+                return;
+            }
+
+            // Сортировка по дате (новые внизу)
+            // messages.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            messagesContainer.innerHTML = messages.map(msg => `
+                <div class="message">
+                    <div class="message-header">
+                        <span class="message-author">${escapeHtml(msg.author)}</span>
+                        <span class="message-time">${formatDate(msg.date)}</span>
+                    </div>
+                    <div class="message-text">${escapeHtml(msg.text)}</div>
+                </div>
+            `).join('');
+
+            // Прокрутка вниз к последнему сообщению
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Отправка сообщения
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            
+            if (!text) return;
+
+            sendButton.disabled = true;
+            
+            const message = {
+                author: currentUsername,
+                text: text,
+                date: new Date().toISOString()
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(message)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка отправки сообщения');
+                }
+
+                messageInput.value = '';
+                loadMessages();
+            } catch (error) {
+                alert('Ошибка отправки: ' + error.message);
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Обработчик кнопки отправки
+        sendButton.addEventListener('click', sendMessage);
+
+        // Отправка по Ctrl+Enter
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                sendMessage();
+            }
+        });
+
+        // Форматирование даты
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+            if (date.toDateString() === today.toDateString()) {
+                return `Сегодня в ${time}`;
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return `Вчера в ${time}`;
+            } else {
+                return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' в ' + time;
+            }
+        }
+
+        // Экранирование HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Инициализация
+        checkUsername();
+    </script>
+</body>
+</html>
