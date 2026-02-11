@@ -310,7 +310,7 @@
         // Загрузка сообщений
         async function loadMessages() {
             try {
-                const response = await fetch(`${API_URL}?sortBy=-date`);
+                const response = await fetch(`${API_URL}?sortBy=date`);
                 
                 if (!response.ok) {
                     throw new Error('Ошибка загрузки сообщений');
